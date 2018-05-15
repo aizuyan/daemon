@@ -1,3 +1,6 @@
+
+不支持windows哦
+
 ## 使用
 ```
 php test/test.php start
