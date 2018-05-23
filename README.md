@@ -1,6 +1,8 @@
 
 不支持windows哦
 
+[https://www.cnblogs.com/iforever/p/9039579.html](https://www.cnblogs.com/iforever/p/9039579.html)
+
 ## 使用
 ```
 php test/test.php start
