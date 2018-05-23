@@ -14,5 +14,6 @@
             "Aizuyan\\Daemon\\": "src/"
         }
     },
-    "require": {}
+    "require": {
+    }
 }
