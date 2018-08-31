@@ -22,6 +22,8 @@ class Test extends Daemon
                 // 处理函数 callable
                 "handle"        => function() {
                 	sleep(5);
+                	echo "SDDSDSD\n";
+                	$this->log("HHHHH");
     				file_put_contents("/tmp/empty-test.txt", "other:" . time()."\n", FILE_APPEND);
                 }
             ]
