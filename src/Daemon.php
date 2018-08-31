@@ -62,6 +62,12 @@ class Daemon
         "start_timestamp" => 0
     ];
 
+    /**
+     * 日志输出文件
+     * @var string
+     */
+    public $log_file = "";
+
 
     /*************************** slaver进程用到的变量 ***************************/
     /**
@@ -108,7 +114,7 @@ class Daemon
     protected function init()
     {
         if (empty($this->statistics_file)) {
-            echo "请配置状态查看文件\n";
+            $this->log("请配置状态统计文件的位置");
             exit(250);
         }
 
@@ -117,7 +123,7 @@ class Daemon
         }
 
         if (empty($this->pid_file)) {
-            echo "请配置pid_file来存储master进程的pid\n";
+            $this->log("请配置pid_file，来存储master进程的pid");
             exit(250);
         }
 
@@ -136,7 +142,8 @@ class Daemon
     protected function check_sapi_env()
     {
         if (php_sapi_name() != "cli") {
-            throw new Exception("仅在CLI模式下运行");
+            $this->log("仅在CLI模式下运行");
+            exit(250);
         }
     }
 
@@ -164,8 +171,8 @@ class Daemon
         $command = @trim($argv[1]);
 
         if (!in_array($command, $commands)) {
-            echo "请输入正确的命令\n";
-            echo "使用方法：[script] [start | restart | stop | reload | quit | status]\n";
+            $this->log("请输入正确的命令");
+            $this->log("使用方法：/path/to/php /path/to/script [start | restart | stop | reload | quit | status]");
             exit(250);
         }
 
@@ -174,7 +181,7 @@ class Daemon
             {
                 $master_pid = $this->get_master_pid();
                 if ($master_pid <= 0) {
-                    echo "获取主进程号失败，请确认主进程已启动，配置文件读取未知正确\n";
+                    $this->log("获取主进程号失败，请确认主进程已启动，配置文件读取未知正确");
                     exit(250);
                 }
                 posix_kill($master_pid, SIGINT);
@@ -186,7 +193,7 @@ class Daemon
                     }
                     break;
                 }
-                echo "平滑停止成功\n";
+                $this->log("平滑停止成功");
                 exit(0);
             }
                 break;
@@ -195,7 +202,7 @@ class Daemon
             {
                 $master_pid = $this->get_master_pid();
                 if ($master_pid <= 0) {
-                    echo "获取主进程号失败，请确认主进程已启动，配置文件读取未知正确\n";
+                    $this->log("获取主进程号失败，请确认主进程已启动，配置文件读取未知正确");
                     exit(250);
                 }
                 posix_kill($master_pid, SIGTERM);
@@ -207,7 +214,7 @@ class Daemon
                     }
                     break;
                 }
-                echo "暴力停止成功\n";
+                $this->log("暴力停止成功");
                 exit(0);
             }
                 break;
@@ -216,7 +223,7 @@ class Daemon
             {
                 $master_pid = $this->get_master_pid();
                 if ($master_pid <= 0) {
-                    echo "获取主进程号失败，请确认主进程已启动，配置文件读取未知正确\n";
+                    $this->log("获取主进程号失败，请确认主进程已启动，配置文件读取未知正确");
                     exit(250);
                 }
                 posix_kill($master_pid, SIGUSR1);
@@ -229,7 +236,7 @@ class Daemon
                 $lines = file($this->statistics_file);
                 $master_lines = array_slice($lines, 0, 5);
                 echo implode("", $master_lines);
-                echo "-------------------------------- slaver进程状态 --------------------------------\n";
+                $this->log("-------------------------------- slaver进程状态 --------------------------------", true);
 
                 $_workers_pid = trim($lines[5]);
                 $_workers_pid = json_decode($_workers_pid, true);
@@ -241,11 +248,11 @@ class Daemon
                 }
 
                 foreach ($_workers_pid as $task_name => $worker_pids) {
-                    echo "任务{$task_name}: \n";
+                    $this->log("任务{$task_name}: ", true);
                     foreach ($worker_pids as $worker_pid) {
                         echo $slaver_lines_map[$worker_pid];
                     }
-                    echo "--------------------------------------------------------------------------------\n";
+                    $this->log("--------------------------------------------------------------------------------", true);
                 }
                 unlink($this->statistics_file);
                 exit(0);
@@ -257,7 +264,7 @@ class Daemon
                 $master_pid = $this->get_master_pid();
                 $master_is_alive = $master_pid && posix_kill($master_pid, 0);
                 if ($master_is_alive) {
-                    echo "进程{$master_pid}已经在运行了\n";
+                    $this->log("进程[{$master_pid}]已经在运行了");
                     exit(250);
                 }
             }
@@ -267,7 +274,7 @@ class Daemon
             {
                 $master_pid = $this->get_master_pid();
                 if ($master_pid <= 0) {
-                    echo "获取主进程号失败，请确认主进程已启动，配置文件读取未知正确\n";
+                    $this->log("获取主进程号失败，请确认主进程已启动，配置文件读取未知正确");
                     exit(250);
                 }
                 posix_kill($master_pid, SIGTERM);
@@ -279,8 +286,8 @@ class Daemon
                     }
                     break;
                 }
-                echo "暴力停止成功\n";
-                echo "重启中...\n";
+                $this->log("暴力停止成功");
+                $this->log("重启中...");
             }
                 break;
 
@@ -288,7 +295,7 @@ class Daemon
             {
                 $master_pid = $this->get_master_pid();
                 if ($master_pid <= 0) {
-                    echo "获取主进程号失败，请确认主进程已启动，配置文件读取未知正确\n";
+                    $this->log("获取主进程号失败，请确认主进程已启动，配置文件读取未知正确");
                     exit(250);
                 }
                 posix_kill($master_pid, SIGINT);
@@ -300,8 +307,8 @@ class Daemon
                     }
                     break;
                 }
-                echo "平滑停止成功\n";
-                echo "重启中...\n";
+                $this->log("平滑停止成功");
+                $this->log("重启中...");
             }
                 break;
 
@@ -323,20 +330,23 @@ class Daemon
         // fork是因为posix_setsid执行的进程不能是进程组组长（group leader）
         $pid = pcntl_fork();
         if (-1 == $pid) {
-            throw new Exception("fork进程失败");
+            $this->log("fork进程失败");
+            exit(250);
         } elseif ($pid != 0) {
             exit(0);
         }
 
         // 创建新的会话，当前进程即是会话组长（sid=pid），也是进程组组长(gpid=pid)
         if (-1 == posix_setsid()) {
-            throw new Exception("新建立session会话失败");
+            $this->log("新建立session会话失败");
+            exit(250);
         }
 
         // 再次fork，使用非会话组长进程，因为打开一个终端的前提是该进程必须是会话组长
         $pid = pcntl_fork();
         if (-1 == $pid) {
-            throw new Exception("fork进程失败");
+            $this->log("fork进程失败");
+            exit(0);
         } else if($pid != 0) {
             exit(0);
         }
@@ -355,7 +365,8 @@ class Daemon
     {
         $master_pid = posix_getpid();
         if (false === @file_put_contents($this->pid_file, $master_pid)) {
-            throw new Exception("主进程id（master pid）写入文件[".$this->pid_file."]失败.");
+            $this->log("主进程id（master pid）写入文件[".$this->pid_file."]失败.");
+            exit(250);
         }
     }
 
@@ -397,7 +408,8 @@ class Daemon
     {
         $pid = pcntl_fork();
         if (-1 == $pid) {
-            throw new Exception("fork进程失败.");
+            $this->log("fork进程失败");
+            exit(250);
         }
         if (0 != $pid) {
             $this->_workers_pid[$task_name][$pid] = $pid;
@@ -509,6 +521,7 @@ class Daemon
      *
      * 关闭标准输入、输出、错误后，未关闭的跳过，重新打开的顺序：标准输入->标准输出->标准错误
      *
+     * 如果设置了日志文件，标准输出，标准错误定位到文件中
      */
     protected function reset_std()
     {
@@ -517,8 +530,13 @@ class Daemon
         fclose(STDOUT);
         fclose(STDERR);
         $STDIN  = fopen($this->std_file, "r");
-        $STDOUT = fopen($this->std_file, "a");
-        $STDERR = fopen($this->std_file, "a");
+        if ($this->log_file && file_exists($this->log_file)) {
+            $STDOUT = fopen($this->log_file, "a");
+            $STDERR = fopen($this->log_file, "a");
+        } else {
+            $STDOUT = fopen($this->std_file, "a");
+            $STDERR = fopen($this->std_file, "a");
+        }
     }
 
     /**
@@ -665,8 +683,27 @@ class Daemon
         }
     }
 
-    public function run_all()
+    /**
+     * 记录日志
+     *
+     * @param $info string 记录的信息
+     * @param bool $echo bool 是否直接显示不拼接额外信息
+     */
+    protected function log($info, $echo = false)
+    {
+        if (!$echo) {
+            $pid = posix_getpid();
+            $ms = explode(" ", microtime());
+            $ms = $ms[0];
+            $ms = substr($ms, 2);
+            $log_info = sprintf("[%s.%d][pid: %d] %s\n", date("Y-m-d H:i:s"), $ms, $pid, $info);
+        } else {
+            $log_info = sprintf("%s\n", $info);
+        }
+        echo $log_info;
+    }
 
+    public function run_all()
     {
         $this->check_sapi_env();
         $this->init();
